@@ -378,6 +378,12 @@ function! s:readable_model_name(...) dict abort
     return s:sub(f,'.*<app/models/(.*)_observer\.rb$','\1')
   elseif f =~ '\<app/uploaders/.*_uploader.rb$'
     return s:sub(f,'.*<app/uploaders/(.*)_uploader\.rb$','\1')
+  elseif f =~ '\<app/misc/.*.rb$'
+    return s:sub(f,'.*<app/misc/(.*)\.rb$','\1')
+  elseif f =~ '\<app/forms/.*_form.rb$'
+    return s:sub(f,'.*<app/forms/(.*)_form\.rb$','\1')
+  elseif f =~ '\<features/.*.feature$'
+    return s:sub(f,'.*<features/(.*)\.feature$','\1')
   elseif f =~ '\<app/models/.*\.rb$'
     return s:sub(f,'.*<app/models/(.*)\.rb$','\1')
   elseif f =~ '\<test/unit/.*_observer_test\.rb$'
@@ -2163,6 +2169,9 @@ function! s:BufFinderCommands()
   call s:addfilecmds("environment")
   call s:addfilecmds("initializer")
   call s:addfilecmds("uploader")
+  call s:addfilecmds("form")
+  call s:addfilecmds("feature")
+  call s:addfilecmds("misc")
   call s:addfilecmds("loop")
   call s:addfilecmds("factory")
   call s:addfilecmds("cell")
@@ -2285,6 +2294,18 @@ function! s:uploaderList(A,L,P)
   return s:autocamelize(rails#app().relglob("app/uploaders/", "**/*", "_uploader.rb"),a:A)
 endfunction
 
+function! s:formList(A,L,P)
+  return s:autocamelize(rails#app().relglob("app/forms/", "**/*", "_form.rb"),a:A)
+endfunction
+
+function! s:featureList(A,L,P)
+  return s:autocamelize(rails#app().relglob("features/", "**/*", ".feature"),a:A)
+endfunction
+
+function! s:miscList(A,L,P)
+  return s:autocamelize(rails#app().relglob("app/misc/", "**/*", ".rb"),a:A)
+endfunction
+
 function! s:cellList(A,L,P)
   return s:autocamelize(rails#app().relglob("app/cells/", "**/*", ".rb"),a:A)
 endfunction
@@ -2324,396 +2345,408 @@ endfunction
 function! s:migrationList(A,L,P)
   if a:A =~ '^\d'
     let migrations = rails#app().relglob("db/migrate/",a:A."[0-9_]*",".rb")
-    return map(migrations,'matchstr(v:val,"^[0-9]*")')
-  else
-    let migrations = rails#app().relglob("db/migrate/","[0-9]*[0-9]_*",".rb")
-    call map(migrations,'s:sub(v:val,"^[0-9]*_","")')
-    return s:autocamelize(migrations,a:A)
-  endif
+  return map(migrations,'matchstr(v:val,"^[0-9]*")')
+else
+  let migrations = rails#app().relglob("db/migrate/","[0-9]*[0-9]_*",".rb")
+  call map(migrations,'s:sub(v:val,"^[0-9]*_","")')
+  return s:autocamelize(migrations,a:A)
+endif
 endfunction
 
 function! s:unittestList(A,L,P)
-  let found = []
-  if rails#app().has('test')
-    let found += rails#app().relglob("test/unit/","**/*","_test.rb")
-  endif
-  if rails#app().has('spec')
-    let found += rails#app().relglob("spec/models/","**/*","_spec.rb")
-  endif
-  return s:autocamelize(found,a:A)
+let found = []
+if rails#app().has('test')
+  let found += rails#app().relglob("test/unit/","**/*","_test.rb")
+endif
+if rails#app().has('spec')
+  let found += rails#app().relglob("spec/models/","**/*","_spec.rb")
+endif
+return s:autocamelize(found,a:A)
 endfunction
 
 function! s:functionaltestList(A,L,P)
-  let found = []
-  if rails#app().has('test')
-    let found += rails#app().relglob("test/functional/","**/*","_test.rb")
-  endif
-  if rails#app().has('spec')
-    let found += rails#app().relglob("spec/controllers/","**/*","_spec.rb")
-    let found += rails#app().relglob("spec/mailers/","**/*","_spec.rb")
-  endif
-  return s:autocamelize(found,a:A)
+let found = []
+if rails#app().has('test')
+  let found += rails#app().relglob("test/functional/","**/*","_test.rb")
+endif
+if rails#app().has('spec')
+  let found += rails#app().relglob("spec/controllers/","**/*","_spec.rb")
+  let found += rails#app().relglob("spec/mailers/","**/*","_spec.rb")
+endif
+return s:autocamelize(found,a:A)
 endfunction
 
 function! s:integrationtestList(A,L,P)
-  if a:A =~# '^\u'
-    return s:autocamelize(rails#app().relglob("test/integration/","**/*","_test.rb"),a:A)
-  endif
-  let found = []
-  if rails#app().has('test')
-    let found += rails#app().relglob("test/integration/","**/*","_test.rb")
-  endif
-  if rails#app().has('spec')
-    let found += rails#app().relglob("spec/requests/","**/*","_spec.rb")
-    let found += rails#app().relglob("spec/integration/","**/*","_spec.rb")
-  endif
-  if rails#app().has('cucumber')
-    let found += rails#app().relglob("features/","**/*",".feature")
-  endif
-  return s:completion_filter(found,a:A)
+if a:A =~# '^\u'
+  return s:autocamelize(rails#app().relglob("test/integration/","**/*","_test.rb"),a:A)
+endif
+let found = []
+if rails#app().has('test')
+  let found += rails#app().relglob("test/integration/","**/*","_test.rb")
+endif
+if rails#app().has('spec')
+  let found += rails#app().relglob("spec/requests/","**/*","_spec.rb")
+  let found += rails#app().relglob("spec/integration/","**/*","_spec.rb")
+endif
+if rails#app().has('cucumber')
+  let found += rails#app().relglob("features/","**/*",".feature")
+endif
+return s:completion_filter(found,a:A)
 endfunction
 
 function! s:specList(A,L,P)
-  return s:completion_filter(rails#app().relglob("spec/","**/*","_spec.rb"),a:A)
+return s:completion_filter(rails#app().relglob("spec/","**/*","_spec.rb"),a:A)
 endfunction
 
 function! s:pluginList(A,L,P)
-  if a:A =~ '/'
-    return s:completion_filter(rails#app().relglob('vendor/plugins/',matchstr(a:A,'.\{-\}/').'**/*'),a:A)
-  else
-    return s:completion_filter(rails#app().relglob('vendor/plugins/',"*","/init.rb"),a:A)
-  endif
+if a:A =~ '/'
+  return s:completion_filter(rails#app().relglob('vendor/plugins/',matchstr(a:A,'.\{-\}/').'**/*'),a:A)
+else
+  return s:completion_filter(rails#app().relglob('vendor/plugins/',"*","/init.rb"),a:A)
+endif
 endfunction
 
 " Task files, not actual rake tasks
 function! s:taskList(A,L,P)
-  let all = rails#app().relglob("lib/tasks/","**/*",".rake")
-  if RailsFilePath() =~ '\<vendor/plugins/.'
-    let path = s:sub(RailsFilePath(),'<vendor/plugins/[^/]*/\zs.*','')
-    let all = rails#app().relglob(path."tasks/","**/*",".rake")+rails#app().relglob(path."lib/tasks/","**/*",".rake")+all
-  endif
-  return s:autocamelize(all,a:A)
+let all = rails#app().relglob("lib/tasks/","**/*",".rake")
+if RailsFilePath() =~ '\<vendor/plugins/.'
+  let path = s:sub(RailsFilePath(),'<vendor/plugins/[^/]*/\zs.*','')
+  let all = rails#app().relglob(path."tasks/","**/*",".rake")+rails#app().relglob(path."lib/tasks/","**/*",".rake")+all
+endif
+return s:autocamelize(all,a:A)
 endfunction
 
 function! s:libList(A,L,P)
-  let all = rails#app().relglob('lib/',"**/*",".rb")
-  if RailsFilePath() =~ '\<vendor/plugins/.'
-    let path = s:sub(RailsFilePath(),'<vendor/plugins/[^/]*/\zs.*','lib/')
-    let all = rails#app().relglob(path,"**/*",".rb") + all
-  endif
-  return s:autocamelize(all,a:A)
+let all = rails#app().relglob('lib/',"**/*",".rb")
+if RailsFilePath() =~ '\<vendor/plugins/.'
+  let path = s:sub(RailsFilePath(),'<vendor/plugins/[^/]*/\zs.*','lib/')
+  let all = rails#app().relglob(path,"**/*",".rb") + all
+endif
+return s:autocamelize(all,a:A)
 endfunction
 
 function! s:environmentList(A,L,P)
-  return s:completion_filter(rails#app().relglob("config/environments/","**/*",".rb"),a:A)
+return s:completion_filter(rails#app().relglob("config/environments/","**/*",".rb"),a:A)
 endfunction
 
 function! s:initializerList(A,L,P)
-  return s:completion_filter(rails#app().relglob("config/initializers/","**/*",".rb"),a:A)
+return s:completion_filter(rails#app().relglob("config/initializers/","**/*",".rb"),a:A)
 endfunction
 
 function! s:Navcommand(bang,...)
-  let suffix = ".rb"
-  let filter = "**/*"
-  let prefix = ""
-  let default = ""
-  let name = ""
-  let i = 0
-  while i < a:0
-    let i += 1
-    let arg = a:{i}
-    if arg =~# '^-suffix='
-      let suffix = matchstr(arg,'-suffix=\zs.*')
-    elseif arg =~# '^-default='
-      let default = matchstr(arg,'-default=\zs.*')
-    elseif arg =~# '^-\%(glob\|filter\)='
-      let filter = matchstr(arg,'-\w*=\zs.*')
-    elseif arg !~# '^-'
-      " A literal '\n'.  For evaluation below
-      if name == ""
-        let name = arg
-      else
-        let prefix .= "\\n".s:sub(arg,'/=$','/')
-      endif
+let suffix = ".rb"
+let filter = "**/*"
+let prefix = ""
+let default = ""
+let name = ""
+let i = 0
+while i < a:0
+  let i += 1
+  let arg = a:{i}
+  if arg =~# '^-suffix='
+    let suffix = matchstr(arg,'-suffix=\zs.*')
+  elseif arg =~# '^-default='
+    let default = matchstr(arg,'-default=\zs.*')
+  elseif arg =~# '^-\%(glob\|filter\)='
+    let filter = matchstr(arg,'-\w*=\zs.*')
+  elseif arg !~# '^-'
+    " A literal '\n'.  For evaluation below
+    if name == ""
+      let name = arg
+    else
+      let prefix .= "\\n".s:sub(arg,'/=$','/')
     endif
-  endwhile
-  let prefix = s:sub(prefix,'^\\n','')
-  if name !~ '^[A-Za-z]\+$'
-    return s:error("E182: Invalid command name")
   endif
-  let cmds = 'ESVTD '
-  let cmd = ''
-  while cmds != ''
-    exe 'command! -buffer -bar -bang -nargs=* -complete=customlist,'.s:sid.'CommandList R'.cmd.name." :call s:CommandEdit('".cmd."<bang>','".name."',\"".prefix."\",".string(suffix).",".string(filter).",".string(default).",<f-args>)"
-    let cmd = strpart(cmds,0,1)
-    let cmds = strpart(cmds,1)
-  endwhile
+endwhile
+let prefix = s:sub(prefix,'^\\n','')
+if name !~ '^[A-Za-z]\+$'
+  return s:error("E182: Invalid command name")
+endif
+let cmds = 'ESVTD '
+let cmd = ''
+while cmds != ''
+  exe 'command! -buffer -bar -bang -nargs=* -complete=customlist,'.s:sid.'CommandList R'.cmd.name." :call s:CommandEdit('".cmd."<bang>','".name."',\"".prefix."\",".string(suffix).",".string(filter).",".string(default).",<f-args>)"
+  let cmd = strpart(cmds,0,1)
+  let cmds = strpart(cmds,1)
+endwhile
 endfunction
 
 function! s:CommandList(A,L,P)
-  let cmd = matchstr(a:L,'\CR[A-Z]\=\w\+')
-  exe cmd." &"
-  let lp = s:last_prefix . "\n"
-  let res = []
-  while lp != ""
-    let p = matchstr(lp,'.\{-\}\ze\n')
-    let lp = s:sub(lp,'.{-}\n','')
-    let res += rails#app().relglob(p,s:last_filter,s:last_suffix)
-  endwhile
-  if s:last_camelize
-    return s:autocamelize(res,a:A)
-  else
-    return s:completion_filter(res,a:A)
-  endif
+let cmd = matchstr(a:L,'\CR[A-Z]\=\w\+')
+exe cmd." &"
+let lp = s:last_prefix . "\n"
+let res = []
+while lp != ""
+  let p = matchstr(lp,'.\{-\}\ze\n')
+  let lp = s:sub(lp,'.{-}\n','')
+  let res += rails#app().relglob(p,s:last_filter,s:last_suffix)
+endwhile
+if s:last_camelize
+  return s:autocamelize(res,a:A)
+else
+  return s:completion_filter(res,a:A)
+endif
 endfunction
 
 function! s:CommandEdit(cmd,name,prefix,suffix,filter,default,...)
-  if a:0 && a:1 == "&"
-    let s:last_prefix = a:prefix
-    let s:last_suffix = a:suffix
-    let s:last_filter = a:filter
-    let s:last_camelize = (a:suffix =~# '\.rb$')
-  else
-    if a:default == "both()"
-      if s:model() != ""
-        let default = s:model()
-      else
-        let default = s:controller()
-      endif
-    elseif a:default == "model()"
-      let default = s:model(1)
-    elseif a:default == "controller()"
-      let default = s:controller(1)
+if a:0 && a:1 == "&"
+  let s:last_prefix = a:prefix
+  let s:last_suffix = a:suffix
+  let s:last_filter = a:filter
+  let s:last_camelize = (a:suffix =~# '\.rb$')
+else
+  if a:default == "both()"
+    if s:model() != ""
+      let default = s:model()
     else
-      let default = a:default
+      let default = s:controller()
     endif
-    call s:EditSimpleRb(a:cmd,a:name,a:0 ? a:1 : default,a:prefix,a:suffix)
+  elseif a:default == "model()"
+    let default = s:model(1)
+  elseif a:default == "controller()"
+    let default = s:controller(1)
+  else
+    let default = a:default
   endif
+  call s:EditSimpleRb(a:cmd,a:name,a:0 ? a:1 : default,a:prefix,a:suffix)
+endif
 endfunction
 
 function! s:EditSimpleRb(cmd,name,target,prefix,suffix,...)
-  let cmd = s:findcmdfor(a:cmd)
-  if a:target == ""
-    " Good idea to emulate error numbers like this?
-    return s:error("E471: Argument required")
-  endif
-  let f = a:0 ? a:target : rails#underscore(a:target)
-  let jump = matchstr(f,'[#!].*\|:\d*\%(:in\)\=$')
-  let f = s:sub(f,'[#!].*|:\d*%(:in)=$','')
-  if jump =~ '^!'
-    let cmd = s:editcmdfor(cmd)
-  endif
-  if f == '.'
-    let f = s:sub(f,'\.$','')
-  else
-    let f .= a:suffix.jump
-  endif
-  let f = s:gsub(a:prefix,'\n',f.'\n').f
-  return s:findedit(cmd,f)
+let cmd = s:findcmdfor(a:cmd)
+if a:target == ""
+  " Good idea to emulate error numbers like this?
+  return s:error("E471: Argument required")
+endif
+let f = a:0 ? a:target : rails#underscore(a:target)
+let jump = matchstr(f,'[#!].*\|:\d*\%(:in\)\=$')
+let f = s:sub(f,'[#!].*|:\d*%(:in)=$','')
+if jump =~ '^!'
+  let cmd = s:editcmdfor(cmd)
+endif
+if f == '.'
+  let f = s:sub(f,'\.$','')
+else
+  let f .= a:suffix.jump
+endif
+let f = s:gsub(a:prefix,'\n',f.'\n').f
+return s:findedit(cmd,f)
 endfunction
 
 function! s:app_migration(file) dict
-  let arg = a:file
-  if arg =~ '^0$\|^0\=[#:]'
-    let suffix = s:sub(arg,'^0*','')
-    if self.has_file('db/schema.rb')
-      return 'db/schema.rb'.suffix
-    elseif self.has_file('db/'.s:environment().'_structure.sql')
-      return 'db/'.s:environment().'_structure.sql'.suffix
-    else
-      return 'db/schema.rb'.suffix
-    endif
-  elseif arg =~ '^\d$'
-    let glob = '00'.arg.'_*.rb'
-  elseif arg =~ '^\d\d$'
-    let glob = '0'.arg.'_*.rb'
-  elseif arg =~ '^\d\d\d$'
-    let glob = ''.arg.'_*.rb'
-  elseif arg == ''
-    let glob = '*.rb'
+let arg = a:file
+if arg =~ '^0$\|^0\=[#:]'
+  let suffix = s:sub(arg,'^0*','')
+  if self.has_file('db/schema.rb')
+    return 'db/schema.rb'.suffix
+  elseif self.has_file('db/'.s:environment().'_structure.sql')
+    return 'db/'.s:environment().'_structure.sql'.suffix
   else
-    let glob = '*'.rails#underscore(arg).'*rb'
+    return 'db/schema.rb'.suffix
   endif
-  let files = split(glob(self.path('db/migrate/').glob),"\n")
-  call map(files,'strpart(v:val,1+strlen(self.path()))')
-  let keep = get(files,0,'')
-  if glob =~# '^\*.*\*rb'
-    let pattern = glob[1:-4]
-    call filter(files,'v:val =~# ''db/migrate/\d\+_''.pattern.''\.rb''')
-    let keep = get(files,0,keep)
-  endif
-  return keep
+elseif arg =~ '^\d$'
+  let glob = '00'.arg.'_*.rb'
+elseif arg =~ '^\d\d$'
+  let glob = '0'.arg.'_*.rb'
+elseif arg =~ '^\d\d\d$'
+  let glob = ''.arg.'_*.rb'
+elseif arg == ''
+  let glob = '*.rb'
+else
+  let glob = '*'.rails#underscore(arg).'*rb'
+endif
+let files = split(glob(self.path('db/migrate/').glob),"\n")
+call map(files,'strpart(v:val,1+strlen(self.path()))')
+let keep = get(files,0,'')
+if glob =~# '^\*.*\*rb'
+  let pattern = glob[1:-4]
+  call filter(files,'v:val =~# ''db/migrate/\d\+_''.pattern.''\.rb''')
+  let keep = get(files,0,keep)
+endif
+return keep
 endfunction
 
 call s:add_methods('app', ['migration'])
 
 function! s:migrationEdit(cmd,...)
-  let cmd = s:findcmdfor(a:cmd)
-  let c = rails#pluralize("create_".s:model(1))
-  let arg = a:0 ? a:1 : c
-  let migr = arg == "." ? "db/migrate" : rails#app().migration(arg)
-  
-  if migr != ''
-    call s:findedit(cmd, migr)
-  else
-    return s:error("Migration not found".(arg=='' ? '' : ': '.arg))
-  endif
+let cmd = s:findcmdfor(a:cmd)
+let c = rails#pluralize("create_".s:model(1))
+let arg = a:0 ? a:1 : c
+let migr = arg == "." ? "db/migrate" : rails#app().migration(arg)
+
+if migr != ''
+  call s:findedit(cmd, migr)
+else
+  return s:error("Migration not found".(arg=='' ? '' : ': '.arg))
+endif
 endfunction
 
 function! s:fixturesEdit(cmd,...)
-  if a:0
-    let c = rails#underscore(a:1)
-  else
-    let c = rails#pluralize(s:model(1))
-  endif
-  if c == ""
-    return s:error("E471: Argument required")
-  endif
-  let e = fnamemodify(c,':e')
-  let e = e == '' ? e : '.'.e
-  let c = fnamemodify(c,':r')
-  let file = get(rails#app().test_suites(),0,'test').'/fixtures/'.c.e
-  if file =~ '\.\w\+$' && rails#app().find_file(c.e,["test/fixtures","spec/fixtures"]) ==# ''
-    call s:edit(a:cmd,file)
-  else
-    call s:findedit(a:cmd,rails#app().find_file(c.e,["test/fixtures","spec/fixtures"],[".yml",".csv"],file))
-  endif
+if a:0
+  let c = rails#underscore(a:1)
+else
+  let c = rails#pluralize(s:model(1))
+endif
+if c == ""
+  return s:error("E471: Argument required")
+endif
+let e = fnamemodify(c,':e')
+let e = e == '' ? e : '.'.e
+let c = fnamemodify(c,':r')
+let file = get(rails#app().test_suites(),0,'test').'/fixtures/'.c.e
+if file =~ '\.\w\+$' && rails#app().find_file(c.e,["test/fixtures","spec/fixtures"]) ==# ''
+  call s:edit(a:cmd,file)
+else
+  call s:findedit(a:cmd,rails#app().find_file(c.e,["test/fixtures","spec/fixtures"],[".yml",".csv"],file))
+endif
 endfunction
 
 function! s:localeEdit(cmd,...)
-  let c = a:0 ? a:1 : rails#app().default_locale()
-  if c =~# '\.'
-    call s:edit(a:cmd,rails#app().find_file(c,'config/locales',[],'config/locales/'.c))
-  else
-    call s:findedit(a:cmd,rails#app().find_file(c,'config/locales',['.yml','.rb'],'config/locales/'.c))
-  endif
+let c = a:0 ? a:1 : rails#app().default_locale()
+if c =~# '\.'
+  call s:edit(a:cmd,rails#app().find_file(c,'config/locales',[],'config/locales/'.c))
+else
+  call s:findedit(a:cmd,rails#app().find_file(c,'config/locales',['.yml','.rb'],'config/locales/'.c))
+endif
 endfunction
 
 function! s:assetEdit(cmd,...)
-  call s:edit(a:cmd, rails#app().find_file(a:1, 'app/assets'))
+call s:edit(a:cmd, rails#app().find_file(a:1, 'app/assets'))
 endfunction
 
 function! s:metalEdit(cmd,...)
-  if a:0
-    call s:EditSimpleRb(a:cmd,"metal",a:1,"app/metal/",".rb")
-  else
-    call s:EditSimpleRb(a:cmd,"metal",'config/boot',"",".rb")
-  endif
+if a:0
+  call s:EditSimpleRb(a:cmd,"metal",a:1,"app/metal/",".rb")
+else
+  call s:EditSimpleRb(a:cmd,"metal",'config/boot',"",".rb")
+endif
 endfunction
 
 function! s:modelEdit(cmd,...)
-  call s:EditSimpleRb(a:cmd,"model",a:0? a:1 : s:model(1),"app/models/",".rb")
+call s:EditSimpleRb(a:cmd,"model",a:0? a:1 : s:model(1),"app/models/",".rb")
 endfunction
 
 function! s:observerEdit(cmd,...)
-  call s:EditSimpleRb(a:cmd,"observer",a:0? a:1 : s:model(1),"app/models/","_observer.rb")
+call s:EditSimpleRb(a:cmd,"observer",a:0? a:1 : s:model(1),"app/models/","_observer.rb")
 endfunction
 
 function! s:viewEdit(cmd,...)
-  if a:0 && a:1 =~ '^[^!#:]'
-    let view = matchstr(a:1,'[^!#:]*')
-  elseif rails#buffer().type_name('controller','mailer')
-    let view = s:lastmethod(line('.'))
-  else
-    let view = ''
-  endif
-  if view == ''
-    return s:error("No view name given")
-  elseif view == '.'
-    return s:edit(a:cmd,'app/views')
-  elseif view !~ '/' && s:controller(1) != ''
-    let view = s:controller(1) . '/' . view
-  endif
-  if view !~ '/'
-    return s:error("Cannot find view without controller")
-  endif
-  let file = "app/views/".view
-  let found = s:findview(view)
-  if found != ''
-    let dir = fnamemodify(rails#app().path(found),':h')
-    if !isdirectory(dir)
-      if a:0 && a:1 =~ '!'
-        call mkdir(dir,'p')
-      else
-        return s:error('No such directory')
-      endif
+if a:0 && a:1 =~ '^[^!#:]'
+  let view = matchstr(a:1,'[^!#:]*')
+elseif rails#buffer().type_name('controller','mailer')
+  let view = s:lastmethod(line('.'))
+else
+  let view = ''
+endif
+if view == ''
+  return s:error("No view name given")
+elseif view == '.'
+  return s:edit(a:cmd,'app/views')
+elseif view !~ '/' && s:controller(1) != ''
+  let view = s:controller(1) . '/' . view
+endif
+if view !~ '/'
+  return s:error("Cannot find view without controller")
+endif
+let file = "app/views/".view
+let found = s:findview(view)
+if found != ''
+  let dir = fnamemodify(rails#app().path(found),':h')
+  if !isdirectory(dir)
+    if a:0 && a:1 =~ '!'
+      call mkdir(dir,'p')
+    else
+      return s:error('No such directory')
     endif
-    call s:edit(a:cmd,found)
-  elseif file =~ '\.\w\+$'
-    call s:findedit(a:cmd,file)
-  else
-    let format = s:format(rails#buffer().type_name('mailer') ? 'text' : 'html')
-    if glob(rails#app().path(file.'.'.format).'.*[^~]') != ''
-      let file .= '.' . format
-    endif
-    call s:findedit(a:cmd,file)
   endif
+  call s:edit(a:cmd,found)
+elseif file =~ '\.\w\+$'
+  call s:findedit(a:cmd,file)
+else
+  let format = s:format(rails#buffer().type_name('mailer') ? 'text' : 'html')
+  if glob(rails#app().path(file.'.'.format).'.*[^~]') != ''
+    let file .= '.' . format
+  endif
+  call s:findedit(a:cmd,file)
+endif
 endfunction
 
 function! s:findview(name)
-  let self = rails#buffer()
-  let name = a:name
-  let pre = 'app/views/'
-  if name !~# '/'
-    let controller = self.controller_name(1)
-    if controller != ''
-      let name = controller.'/'.name
-    endif
+let self = rails#buffer()
+let name = a:name
+let pre = 'app/views/'
+if name !~# '/'
+  let controller = self.controller_name(1)
+  if controller != ''
+    let name = controller.'/'.name
   endif
-  if name =~# '\.\w\+\.\w\+$' || name =~# '\.'.s:viewspattern().'$'
-    return pre.name
-  else
-    for format in ['.'.s:format('html'), '']
-      for type in split(s:view_types,',')
-        if self.app().has_file(pre.name.format.'.'.type)
-          return pre.name.format.'.'.type
-        endif
-      endfor
+endif
+if name =~# '\.\w\+\.\w\+$' || name =~# '\.'.s:viewspattern().'$'
+  return pre.name
+else
+  for format in ['.'.s:format('html'), '']
+    for type in split(s:view_types,',')
+      if self.app().has_file(pre.name.format.'.'.type)
+        return pre.name.format.'.'.type
+      endif
     endfor
-  endif
-  return ''
+  endfor
+endif
+return ''
 endfunction
 
 function! s:findlayout(name)
-  return s:findview("layouts/".(a:name == '' ? 'application' : a:name))
+return s:findview("layouts/".(a:name == '' ? 'application' : a:name))
 endfunction
 
 function! s:layoutEdit(cmd,...)
-  if a:0
-    return s:viewEdit(a:cmd,"layouts/".a:1)
-  endif
-  let file = s:findlayout(s:controller(1))
-  if file == ""
-    let file = s:findlayout("application")
-  endif
-  if file == ""
-    let file = "app/views/layouts/application.html.erb"
-  endif
-  call s:edit(a:cmd,s:sub(file,'^/',''))
+if a:0
+  return s:viewEdit(a:cmd,"layouts/".a:1)
+endif
+let file = s:findlayout(s:controller(1))
+if file == ""
+  let file = s:findlayout("application")
+endif
+if file == ""
+  let file = "app/views/layouts/application.html.erb"
+endif
+call s:edit(a:cmd,s:sub(file,'^/',''))
 endfunction
 
 function! s:controllerEdit(cmd,...)
-  let suffix = '.rb'
-  if a:0 == 0
-    let controller = s:controller(1)
-    if rails#buffer().type_name() =~# '^view\%(-layout\|-partial\)\@!'
-      let suffix .= '#'.expand('%:t:r')
-    endif
-  else
-    let controller = a:1
+let suffix = '.rb'
+if a:0 == 0
+  let controller = s:controller(1)
+  if rails#buffer().type_name() =~# '^view\%(-layout\|-partial\)\@!'
+    let suffix .= '#'.expand('%:t:r')
   endif
-  if rails#app().has_file("app/controllers/".controller."_controller.rb") || !rails#app().has_file("app/controllers/".controller.".rb")
-    let suffix = "_controller".suffix
-  endif
-  return s:EditSimpleRb(a:cmd,"controller",controller,"app/controllers/",suffix)
+else
+  let controller = a:1
+endif
+if rails#app().has_file("app/controllers/".controller."_controller.rb") || !rails#app().has_file("app/controllers/".controller.".rb")
+  let suffix = "_controller".suffix
+endif
+return s:EditSimpleRb(a:cmd,"controller",controller,"app/controllers/",suffix)
 endfunction
 
 function! s:mailerEdit(cmd,...)
-  return s:EditSimpleRb(a:cmd,"mailer",a:0? a:1 : s:controller(1),"app/mailers/\napp/models/",".rb")
+return s:EditSimpleRb(a:cmd,"mailer",a:0? a:1 : s:controller(1),"app/mailers/\napp/models/",".rb")
 endfunction
 
 function! s:uploaderEdit(cmd,...)
   return s:EditSimpleRb(a:cmd, "uploader", a:0 ? a:1 : s:model(1), "app/uploaders/", "_uploader.rb")
+endfunction
+
+function! s:formEdit(cmd,...)
+  return s:EditSimpleRb(a:cmd, "form", a:0 ? a:1 : "", "app/forms/", "_form.rb")
+endfunction
+
+function! s:featureEdit(cmd,...)
+  return s:EditSimpleRb(a:cmd, "feature", a:0 ? a:1 : "", "features/", ".feature")
+endfunction
+
+function! s:miscEdit(cmd,...)
+  return s:EditSimpleRb(a:cmd, "misc", a:0 ? a:1 : "", "app/misc/", ".rb")
 endfunction
 
 function! s:loopEdit(cmd,...)
